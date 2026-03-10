@@ -805,7 +805,7 @@ function Terminal({ onSubmit, output, currentKey }) {
         ))}
         <span style={{ color: "#2a3a2a", fontSize: 10, marginLeft: 6 }}>quest_user@terminal-quest ~</span>
       </div>
-      <div style={{ minHeight: 130, maxHeight: 210, overflowY: "auto", padding: "10px 14px" }}>
+      <div style={{ minHeight: 120, maxHeight: 200, overflowY: "auto", padding: "10px 12px" }}>
         {output.map((line, i) => (
           <div key={i} style={{
             color: line.type === "cmd" ? "#00ff9d"
@@ -907,7 +907,7 @@ function LessonCard({ lesson, levelColor, onComplete, isCompleted, onHint, hints
         background: done ? `linear-gradient(135deg, ${levelColor}08, transparent)` : "#fafafa",
         borderBottom: `1px solid ${done ? levelColor + "18" : "#f3f4f6"}`,
         display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10,
-      }}>
+      }} className="tq-lesson-header">
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
             <code style={{
@@ -925,7 +925,7 @@ function LessonCard({ lesson, levelColor, onComplete, isCompleted, onHint, hints
           </div>
           <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>{lesson.description}</p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }} className="tq-lesson-btns">
           <button onClick={() => setShowLearn(!showLearn)} style={{
             background: showLearn ? levelColor + "14" : "white",
             border: `1px solid ${showLearn ? levelColor + "44" : "#e5e7eb"}`,
@@ -1339,10 +1339,35 @@ const THEORY_CHAPTERS = [
 ];
 
 // ─── THEORY PAGE ─────────────────────────────────────────────────────────────
+
+// ─── RESPONSIVE HOOK ─────────────────────────────────────────────────────────
+function useIsMobile() {
+  const getW = () => {
+    if (typeof window === "undefined") return 800;
+    // Use visualViewport width if available (most accurate on mobile)
+    return window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  };
+  const [w, setW] = useState(getW);
+  useEffect(() => {
+    const fn = () => setW(getW());
+    window.addEventListener("resize", fn);
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", fn);
+    // Also fire once after mount to catch any SSR mismatch
+    fn();
+    return () => {
+      window.removeEventListener("resize", fn);
+      if (window.visualViewport) window.visualViewport.removeEventListener("resize", fn);
+    };
+  }, []);
+  return w < 768;  // Use 768 to catch more phones including larger ones
+}
+
+// ─── THEORY PAGE ─────────────────────────────────────────────────────────────
 function TheoryPage({ onComplete }) {
   const [activeChapter, setActiveChapter] = useState(0);
   const [readChapters, setReadChapters] = useState(new Set([0]));
   const topRef = useRef(null);
+  const mob = useIsMobile();
 
   const chapter = THEORY_CHAPTERS[activeChapter];
   const isLast = activeChapter === THEORY_CHAPTERS.length - 1;
@@ -1353,94 +1378,113 @@ function TheoryPage({ onComplete }) {
     topRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const goNext = () => {
-    if (!isLast) goToChapter(activeChapter + 1);
-  };
-
   return (
-    <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div ref={topRef} style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <style>{`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
-        @keyframes pulse2 { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); } 70% { box-shadow: 0 0 0 10px rgba(99,102,241,0); } }
-        .theory-section { animation: fadeUp 0.35s ease both; }
-        .chapter-tab:hover { background: rgba(255,255,255,0.12) !important; }
-        .nav-item:hover { transform: translateY(-1px); }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+        @keyframes pulse2 { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.4)}70%{box-shadow:0 0 0 10px rgba(99,102,241,0)} }
+        .tsec { animation: fadeUp 0.3s ease both; }
+        * { box-sizing: border-box; }
+        html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden; }
+        @media screen and (max-width: 767px) {
+          .tq-theory-side  { display: none !important; }
+          .tq-theory-wrap  { padding: 0 10px 40px !important; }
+          .tq-theory-hero  { padding: 24px 14px 44px !important; }
+          .tq-theory-hero h1 { font-size: 22px !important; line-height: 1.25 !important; }
+          .tq-theory-navbtns { flex-direction: column !important; gap: 10px !important; }
+          .tq-theory-navbtns button { flex: unset !important; width: 100% !important; }
+        }
       `}</style>
 
-      {/* Top nav */}
-      <div ref={topRef} style={{
-        background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-        padding: "0 24px", position: "sticky", top: 0, zIndex: 100,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
+      {/* Top bar */}
+      <div style={{
+        background: "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+        padding: mob ? "0 14px" : "0 24px",
+        position: "sticky", top: 0, zIndex: 100,
+        boxShadow: "0 4px 24px rgba(0,0,0,.25)",
       }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", height: 64, gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{
+          maxWidth: 1000, margin: "0 auto",
+          display: "flex", alignItems: "center",
+          height: mob ? 52 : 64, gap: 12,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+              width: 32, height: 32, borderRadius: 8,
+              background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
             }}>🐧</div>
-            <div>
-              <div style={{ color: "white", fontWeight: 800, fontSize: 15, lineHeight: 1 }}>Terminal Quest</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: 0.5 }}>Linux Learning Path</div>
-            </div>
+            {!mob && (
+              <div>
+                <div style={{ color: "white", fontWeight: 800, fontSize: 14, lineHeight: 1 }}>Terminal Quest</div>
+                <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10 }}>Linux Learning Path</div>
+              </div>
+            )}
           </div>
           <div style={{ flex: 1 }} />
-          <div style={{
-            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 20, padding: "4px 14px", color: "rgba(255,255,255,0.5)", fontSize: 11,
-          }}>
-            {readChapters.size} / {THEORY_CHAPTERS.length} chapters read
-          </div>
+          {!mob && (
+            <div style={{
+              background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)",
+              borderRadius: 20, padding: "4px 14px", color: "rgba(255,255,255,.5)", fontSize: 11,
+            }}>{readChapters.size} / {THEORY_CHAPTERS.length} read</div>
+          )}
           <button onClick={onComplete} style={{
-            background: "rgba(99,102,241,0.2)", border: "1px solid rgba(99,102,241,0.4)",
-            color: "#a5b4fc", padding: "7px 16px", borderRadius: 8,
-            cursor: "pointer", fontSize: 12, fontFamily: "inherit", fontWeight: 600,
-          }}>Skip to Practice →</button>
+            background: "rgba(99,102,241,.2)", border: "1px solid rgba(99,102,241,.4)",
+            color: "#a5b4fc", padding: mob ? "7px 12px" : "7px 16px",
+            borderRadius: 8, cursor: "pointer", fontSize: mob ? 11 : 12,
+            fontFamily: "inherit", fontWeight: 600,
+          }}>Skip →</button>
         </div>
       </div>
 
       {/* Hero */}
-      <div style={{
-        background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-        padding: "40px 24px 60px",
+      <div className="tq-theory-hero" style={{
+        background: "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+        padding: mob ? "28px 16px 48px" : "40px 24px 60px",
       }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 8,
-            background: "rgba(99,102,241,0.2)", border: "1px solid rgba(99,102,241,0.3)",
-            borderRadius: 20, padding: "6px 16px", marginBottom: 20,
+            background: "rgba(99,102,241,.2)", border: "1px solid rgba(99,102,241,.3)",
+            borderRadius: 20, padding: "5px 14px", marginBottom: 16,
           }}>
-            <span style={{ color: "#a5b4fc", fontSize: 12, fontWeight: 600 }}>📚 Theory First — Practice Second</span>
+            <span style={{ color: "#a5b4fc", fontSize: 11, fontWeight: 600 }}>📚 Theory First — Practice Second</span>
           </div>
-          <h1 style={{ color: "white", fontSize: 38, fontWeight: 900, margin: "0 0 14px", lineHeight: 1.15 }}>
+          <h1 style={{
+            color: "white", fontSize: mob ? 24 : 38, fontWeight: 900,
+            margin: "0 0 12px", lineHeight: 1.2,
+          }}>
             Understand Linux<br />
-            <span style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa, #38bdf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              Before You Touch the Terminal
+            <span style={{ background: "linear-gradient(90deg,#6366f1,#a78bfa,#38bdf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              Before Touching the Terminal
             </span>
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 16, margin: "0 auto", maxWidth: 540, lineHeight: 1.7 }}>
-            Don't worry — no experience needed. These short chapters explain everything in plain English. Finish all {THEORY_CHAPTERS.length} to unlock the hands-on practice.
+          <p style={{ color: "rgba(255,255,255,.55)", fontSize: mob ? 13 : 15, margin: "0 auto", maxWidth: 500, lineHeight: 1.7 }}>
+            No experience needed. Plain English explanations. Finish all {THEORY_CHAPTERS.length} chapters to unlock hands-on practice.
           </p>
 
-          {/* Chapter pill tabs */}
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 32 }}>
+          {/* Chapter pills */}
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 7, marginTop: 28 }}>
             {THEORY_CHAPTERS.map((ch, i) => (
-              <button key={ch.id} className="chapter-tab" onClick={() => goToChapter(i)} style={{
+              <button key={ch.id} onClick={() => goToChapter(i)} style={{
                 background: activeChapter === i
-                  ? `linear-gradient(135deg, ${ch.color}, ${ch.color}bb)`
-                  : "rgba(255,255,255,0.07)",
-                border: `1px solid ${activeChapter === i ? ch.color : "rgba(255,255,255,0.1)"}`,
-                color: activeChapter === i ? "white" : "rgba(255,255,255,0.55)",
-                padding: "8px 18px", borderRadius: 24, cursor: "pointer",
-                fontSize: 13, fontFamily: "inherit", fontWeight: activeChapter === i ? 700 : 400,
-                transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6,
+                  ? `linear-gradient(135deg,${ch.color},${ch.color}bb)`
+                  : "rgba(255,255,255,.07)",
+                border: `1px solid ${activeChapter === i ? ch.color : "rgba(255,255,255,.1)"}`,
+                color: activeChapter === i ? "white" : "rgba(255,255,255,.55)",
+                padding: mob ? "6px 12px" : "8px 18px",
+                borderRadius: 24, cursor: "pointer",
+                fontSize: mob ? 11 : 13, fontFamily: "inherit",
+                fontWeight: activeChapter === i ? 700 : 400,
+                transition: "all .2s",
+                display: "flex", alignItems: "center", gap: 5,
               }}>
                 {ch.emoji} {ch.title}
                 {readChapters.has(i) && activeChapter !== i && (
                   <span style={{
                     background: "#10b981", color: "white", borderRadius: "50%",
-                    width: 16, height: 16, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900,
+                    width: 15, height: 15, fontSize: 8,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900,
                   }}>✓</span>
                 )}
               </button>
@@ -1449,62 +1493,68 @@ function TheoryPage({ onComplete }) {
         </div>
       </div>
 
-      {/* Main content */}
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 24px 60px", display: "flex", gap: 28, alignItems: "flex-start" }}>
-
-        {/* Chapter content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Chapter card */}
+      {/* Content */}
+      <div className="tq-theory-wrap" style={{
+        maxWidth: 1000, margin: "0 auto",
+        padding: mob ? "0 12px 48px" : "0 24px 60px",
+        display: "flex", gap: 24, alignItems: "flex-start",
+      }}>
+        {/* Main */}
+        <div className="tq-theory-main" style={{ flex: 1, minWidth: 0 }}>
+          {/* Chapter header card */}
           <div style={{
-            background: "white", borderRadius: "0 0 20px 20px",
-            padding: "28px 32px 24px", marginBottom: 20,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+            background: "white", borderRadius: "0 0 16px 16px",
+            padding: mob ? "20px 16px 18px" : "28px 32px 24px",
+            marginBottom: 16,
+            boxShadow: "0 6px 24px rgba(0,0,0,.07)",
             borderTop: `5px solid ${chapter.color}`,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{
-                width: 64, height: 64, borderRadius: 16, fontSize: 30,
+                width: mob ? 48 : 60, height: mob ? 48 : 60,
+                borderRadius: 14, fontSize: mob ? 24 : 28,
                 background: chapter.color + "18",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}>{chapter.emoji}</div>
               <div>
-                <div style={{
-                  fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5,
-                  color: chapter.color, marginBottom: 4,
-                }}>Chapter {activeChapter + 1} of {THEORY_CHAPTERS.length}</div>
-                <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#1e1b4b" }}>{chapter.title}</h2>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: chapter.color, marginBottom: 4 }}>
+                  Chapter {activeChapter + 1} of {THEORY_CHAPTERS.length}
+                </div>
+                <h2 style={{ margin: 0, fontSize: mob ? 18 : 22, fontWeight: 900, color: "#1e1b4b" }}>{chapter.title}</h2>
               </div>
             </div>
           </div>
 
           {/* Sections */}
           {chapter.sections.map((sec, i) => (
-            <div key={i} className="theory-section" style={{
-              background: "white", borderRadius: 16, padding: "24px 28px",
-              marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.05)",
+            <div key={i} className="tsec" style={{
+              background: "white", borderRadius: 14,
+              padding: mob ? "16px 14px" : "22px 26px",
+              marginBottom: 12, boxShadow: "0 2px 12px rgba(0,0,0,.05)",
               borderLeft: `4px solid ${chapter.color}`,
-              animationDelay: `${i * 0.07}s`,
+              animationDelay: `${i * 0.06}s`,
             }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <div style={{
-                  width: 28, height: 28, borderRadius: 8, background: chapter.color + "18",
-                  color: chapter.color, fontSize: 12, fontWeight: 900, flexShrink: 0,
+                  width: 24, height: 24, borderRadius: 6,
+                  background: chapter.color + "18", color: chapter.color,
+                  fontSize: 11, fontWeight: 900, flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2,
                 }}>{i + 1}</div>
                 <div>
-                  <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 800, color: "#1e1b4b" }}>
-                    {sec.heading}
-                  </h3>
-                  <p style={{ margin: 0, fontSize: 15, color: "#4b5563", lineHeight: 1.85 }}>
-                    {sec.body}
-                  </p>
+                  <h3 style={{ margin: "0 0 8px", fontSize: mob ? 14 : 15, fontWeight: 800, color: "#1e1b4b" }}>{sec.heading}</h3>
+                  <p style={{ margin: 0, fontSize: mob ? 13 : 14, color: "#4b5563", lineHeight: 1.85 }}>{sec.body}</p>
                 </div>
               </div>
             </div>
           ))}
 
-          {/* Navigation */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28 }}>
+          {/* Nav buttons */}
+          <div className="tq-theory-navbtns" style={{
+            display: "flex", flexDirection: mob ? "column" : "row",
+            justifyContent: "space-between", alignItems: "stretch",
+            gap: 10, marginTop: 24,
+          }}>
             <button
               onClick={() => activeChapter > 0 && goToChapter(activeChapter - 1)}
               disabled={activeChapter === 0}
@@ -1512,87 +1562,84 @@ function TheoryPage({ onComplete }) {
                 background: activeChapter === 0 ? "#f3f4f6" : "white",
                 border: "2px solid #e5e7eb",
                 color: activeChapter === 0 ? "#9ca3af" : "#374151",
-                padding: "12px 24px", borderRadius: 12, cursor: activeChapter === 0 ? "default" : "pointer",
+                padding: "12px 24px", borderRadius: 12,
+                cursor: activeChapter === 0 ? "default" : "pointer",
                 fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                order: mob ? 2 : 0,
               }}
             >← Previous</button>
 
             {isLast ? (
               <button onClick={onComplete} style={{
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
                 border: "none", color: "white",
-                padding: "14px 36px", borderRadius: 14, cursor: "pointer",
-                fontSize: 16, fontWeight: 800, fontFamily: "inherit",
-                boxShadow: "0 6px 24px rgba(99,102,241,0.45)",
-                animation: "pulse2 2s infinite",
+                padding: "14px 28px", borderRadius: 14, cursor: "pointer",
+                fontSize: mob ? 14 : 16, fontWeight: 800, fontFamily: "inherit",
+                boxShadow: "0 6px 20px rgba(99,102,241,.4)",
+                animation: "pulse2 2s infinite", flex: 1,
               }}>🚀 I'm Ready — Start Practising!</button>
             ) : (
-              <button onClick={goNext} style={{
-                background: `linear-gradient(135deg, ${chapter.color}, ${chapter.color}bb)`,
+              <button onClick={() => goToChapter(activeChapter + 1)} style={{
+                background: `linear-gradient(135deg,${chapter.color},${chapter.color}bb)`,
                 border: "none", color: "white",
                 padding: "12px 28px", borderRadius: 12, cursor: "pointer",
                 fontSize: 14, fontWeight: 700, fontFamily: "inherit",
-                boxShadow: `0 4px 16px ${chapter.color}44`,
+                boxShadow: `0 4px 14px ${chapter.color}44`, flex: mob ? 1 : "unset",
               }}>Next Chapter →</button>
             )}
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div style={{ width: 230, flexShrink: 0, position: "sticky", top: 84 }}>
-          <div style={{
-            background: "white", borderRadius: 16, padding: "18px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.07)", marginBottom: 16,
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b", marginBottom: 14 }}>📖 Chapters</div>
-            {THEORY_CHAPTERS.map((ch, i) => (
-              <div key={ch.id} onClick={() => goToChapter(i)} style={{
-                display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
-                borderRadius: 10, marginBottom: 4, cursor: "pointer",
-                background: activeChapter === i ? ch.color + "14" : "transparent",
-                border: `1px solid ${activeChapter === i ? ch.color + "30" : "transparent"}`,
-                transition: "all 0.15s",
-              }}>
-                <span style={{ fontSize: 16 }}>{ch.emoji}</span>
-                <span style={{
-                  flex: 1, fontSize: 12, lineHeight: 1.3,
-                  color: activeChapter === i ? "#1e1b4b" : "#6b7280",
-                  fontWeight: activeChapter === i ? 700 : 400,
-                }}>{ch.title}</span>
-                {readChapters.has(i)
-                  ? <span style={{ color: "#10b981", fontSize: 14 }}>✓</span>
-                  : <span style={{ color: "#d1d5db", fontSize: 11 }}>○</span>}
-              </div>
-            ))}
-
-            {readChapters.size >= THEORY_CHAPTERS.length && (
-              <button onClick={onComplete} style={{
-                marginTop: 12, width: "100%",
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                border: "none", color: "white", padding: "11px",
-                borderRadius: 10, cursor: "pointer",
-                fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-              }}>🚀 Start Practising!</button>
-            )}
+        {/* Sidebar — hidden on mobile */}
+        {!mob && (
+          <div className="tq-theory-side" style={{ width: 220, flexShrink: 0, position: "sticky", top: 80 }}>
+            <div style={{
+              background: "white", borderRadius: 14, padding: 16,
+              boxShadow: "0 4px 18px rgba(0,0,0,.07)", marginBottom: 14,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e1b4b", marginBottom: 12 }}>📖 Chapters</div>
+              {THEORY_CHAPTERS.map((ch, i) => (
+                <div key={ch.id} onClick={() => goToChapter(i)} style={{
+                  display: "flex", alignItems: "center", gap: 9, padding: "8px 10px",
+                  borderRadius: 9, marginBottom: 3, cursor: "pointer",
+                  background: activeChapter === i ? ch.color + "14" : "transparent",
+                  border: `1px solid ${activeChapter === i ? ch.color + "30" : "transparent"}`,
+                  transition: "all .15s",
+                }}>
+                  <span style={{ fontSize: 15 }}>{ch.emoji}</span>
+                  <span style={{
+                    flex: 1, fontSize: 12, color: activeChapter === i ? "#1e1b4b" : "#6b7280",
+                    fontWeight: activeChapter === i ? 700 : 400,
+                  }}>{ch.title}</span>
+                  {readChapters.has(i) ? <span style={{ color: "#10b981", fontSize: 13 }}>✓</span> : <span style={{ color: "#d1d5db", fontSize: 10 }}>○</span>}
+                </div>
+              ))}
+              {readChapters.size >= THEORY_CHAPTERS.length && (
+                <button onClick={onComplete} style={{
+                  marginTop: 10, width: "100%",
+                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                  border: "none", color: "white", padding: "10px",
+                  borderRadius: 9, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit",
+                }}>🚀 Start Practising!</button>
+              )}
+            </div>
+            <div style={{
+              background: "linear-gradient(135deg,#1e1b4b,#312e81)",
+              borderRadius: 14, padding: 16,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "white", marginBottom: 8 }}>💡 Did you know?</div>
+              <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,.65)", lineHeight: 1.7 }}>
+                96% of the world's top web servers run Linux. Learning it puts you in the same league as engineers who built the internet.
+              </p>
+            </div>
           </div>
-
-          <div style={{
-            background: "linear-gradient(135deg, #1e1b4b, #312e81)",
-            borderRadius: 16, padding: "18px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "white", marginBottom: 10 }}>💡 Did you know?</div>
-            <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.75 }}>
-              Over 96% of the world's top web servers run Linux. Learning it puts you in the same league as engineers who built the internet.
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── LEVEL CARD ──────────────────────────────────────────────────────────────
+// ─── LEVEL CARD ───────────────────────────────────────────────────────────────
 function LevelCard({ level, userState, onSelect, isActive }) {
   const done = level.lessons.filter((l) => userState.completedLessons.includes(l.id)).length;
   const isCompleted = userState.completedLevels.includes(level.id);
@@ -1603,41 +1650,40 @@ function LevelCard({ level, userState, onSelect, isActive }) {
     <div onClick={() => onSelect(level.id)} style={{
       background: isActive ? "white" : "#f9fafb",
       border: `2px solid ${isActive ? level.color : "#e5e7eb"}`,
-      borderRadius: 12, padding: "12px 14px", cursor: "pointer",
-      transition: "all 0.15s", boxShadow: isActive ? `0 4px 16px ${level.color}22` : "none",
+      borderRadius: 12, padding: "11px 13px", cursor: "pointer",
+      transition: "all .15s",
+      boxShadow: isActive ? `0 4px 14px ${level.color}22` : "none",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 7 }}>
         <div style={{
-          width: 32, height: 32, borderRadius: 8, fontSize: 14,
-          background: level.color + "18", display: "flex", alignItems: "center", justifyContent: "center",
+          width: 30, height: 30, borderRadius: 8, fontSize: 14,
+          background: level.color + "18",
+          display: "flex", alignItems: "center", justifyContent: "center",
           color: level.color, flexShrink: 0,
         }}>{level.icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: isActive ? "#1e1b4b" : "#374151", fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>{level.title}</div>
+          <div style={{ color: isActive ? "#1e1b4b" : "#374151", fontWeight: 700, fontSize: 12, lineHeight: 1.2 }}>{level.title}</div>
           <div style={{ color: "#9ca3af", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{level.subtitle}</div>
         </div>
         {isCompleted && (
-          <div style={{
+          <span style={{
             background: "#dcfce7", color: "#16a34a",
-            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10,
-          }}>Done</div>
+            fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 8,
+          }}>✓</span>
         )}
       </div>
-      <div style={{ height: 4, background: "#f3f4f6", borderRadius: 2, marginBottom: 5 }}>
-        <div style={{
-          height: "100%", width: `${pct}%`, background: level.color,
-          borderRadius: 2, transition: "width 0.4s",
-        }} />
+      <div style={{ height: 3, background: "#f3f4f6", borderRadius: 2, marginBottom: 4 }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: level.color, borderRadius: 2, transition: "width .4s" }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ color: "#9ca3af", fontSize: 10 }}>{done}/{level.lessons.length} lessons</span>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span style={{ color: "#9ca3af", fontSize: 10 }}>{done}/{level.lessons.length}</span>
         <span style={{ color: level.color, fontSize: 10, fontWeight: 700 }}>{pct}%</span>
       </div>
       {hasWarning && !isCompleted && (
         <div style={{
-          marginTop: 6, fontSize: 9, color: "#b45309", fontWeight: 600,
-          padding: "2px 7px", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 6,
-        }}>⚠ Complete earlier levels first</div>
+          marginTop: 5, fontSize: 9, color: "#b45309", fontWeight: 600,
+          padding: "2px 6px", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 5,
+        }}>⚠ Do earlier levels first</div>
       )}
     </div>
   );
@@ -1651,6 +1697,7 @@ export default function App() {
   const [appSection, setAppSection] = useState("theory");
   const [notification, setNotification] = useState(null);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const mob = useIsMobile();
 
   useEffect(() => { saveState(userState); }, [userState]);
 
@@ -1659,9 +1706,10 @@ export default function App() {
     if (last) {
       const diff = (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24);
       if (diff > 1) setShowWelcomeBack(true);
+      setAppSection("practice");
     }
     setUserState((s) => ({ ...s, lastVisit: new Date().toISOString() }));
-  }, []);
+  }, []); // eslint-disable-line
 
   const showNotif = useCallback((msg, color = "#6366f1") => {
     setNotification({ msg, color });
@@ -1672,7 +1720,7 @@ export default function App() {
     setUserState((s) => {
       if (s.badges.includes(id)) return s;
       const badge = BADGES.find((b) => b.id === id);
-      if (badge) showNotif(`🏆 Badge unlocked: ${badge.label}`, "#f59e0b");
+      if (badge) showNotif(`🏆 Badge: ${badge.label}`, "#f59e0b");
       return { ...s, badges: [...s.badges, id] };
     });
   }, [showNotif]);
@@ -1714,34 +1762,55 @@ export default function App() {
     });
   }, [showNotif, awardBadge]);
 
-  const currentLevel = LEVELS.find((l) => l.id === activeLevel);
-  const totalLessons = LEVELS.reduce((a, l) => a + l.lessons.length, 0);
-  const progressPct = Math.round((userState.completedLessons.length / totalLessons) * 100);
-
   if (appSection === "theory") {
     return <TheoryPage onComplete={() => setAppSection("practice")} />;
   }
 
+  const currentLevel = LEVELS.find((l) => l.id === activeLevel);
+  const totalLessons = LEVELS.reduce((a, l) => a + l.lessons.length, 0);
+  const progressPct = Math.round((userState.completedLessons.length / totalLessons) * 100);
+
+  const NAV_ITEMS = [
+    { id: "learn",     label: mob ? "📚" : "📚 Learn"    },
+    { id: "game",      label: mob ? "🎮" : "🎮 Missions" },
+    { id: "dashboard", label: mob ? "🏆" : "🏆 Progress" },
+  ];
+
   return (
     <div style={{ minHeight: "100vh", background: "#f8f9ff", fontFamily: "'Segoe UI', system-ui, sans-serif", color: "#1e1b4b" }}>
       <style>{`
-        @keyframes slideIn { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:none; } }
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        @keyframes slideIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:none} }
+        @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden; }
+
+        /* CSS-guaranteed mobile layout — works even before JS hydrates */
+        @media screen and (max-width: 767px) {
+          .tq-learn-wrap   { flex-direction: column !important; }
+          .tq-level-side   { width: 100% !important; }
+          .tq-level-grid   { grid-template-columns: 1fr 1fr !important; }
+          .tq-theory-side  { display: none !important; }
+          .tq-theory-wrap  { flex-direction: column !important; }
+          .tq-theory-main  { width: 100% !important; min-width: 0 !important; }
+          .tq-term-wrap    { max-width: 100% !important; overflow-x: hidden !important; }
+        }
+        @media screen and (max-width: 400px) {
+          .tq-level-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       {/* Toast */}
       {notification && (
         <div style={{
-          position: "fixed", top: 20, right: 20, zIndex: 10000,
-          background: "white", border: `2px solid ${notification.color}`,
-          color: notification.color, padding: "11px 22px", borderRadius: 14,
-          fontSize: 14, fontWeight: 700,
-          boxShadow: `0 8px 32px ${notification.color}33`,
-          animation: "slideIn 0.25s ease",
+          position: "fixed", top: 16, right: 16, left: mob ? 16 : "auto",
+          zIndex: 10000, background: "white",
+          border: `2px solid ${notification.color}`,
+          color: notification.color, padding: "10px 18px", borderRadius: 12,
+          fontSize: 13, fontWeight: 700,
+          boxShadow: `0 6px 24px ${notification.color}33`,
+          animation: "slideIn .25s ease",
         }}>{notification.msg}</div>
       )}
 
@@ -1749,252 +1818,278 @@ export default function App() {
       {showWelcomeBack && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 9999,
-          background: "rgba(15,12,41,0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-          animation: "fadeIn 0.3s ease",
+          background: "rgba(15,12,41,.6)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          animation: "fadeIn .3s ease",
         }}>
           <div style={{
-            background: "white", borderRadius: 24, padding: "36px 40px",
-            maxWidth: 420, width: "100%", textAlign: "center",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
+            background: "white", borderRadius: 20,
+            padding: mob ? "24px 18px" : "34px 38px",
+            maxWidth: 400, width: "100%", textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0,0,0,.2)",
           }}>
-            <div style={{ fontSize: 48, marginBottom: 14 }}>👋</div>
-            <h2 style={{ margin: "0 0 8px", color: "#1e1b4b", fontSize: 24, fontWeight: 900 }}>Welcome back!</h2>
-            <p style={{ color: "#6b7280", fontSize: 15, marginBottom: 20, lineHeight: 1.6 }}>
-              Pick up right where you left off.
-            </p>
-            <div style={{ background: "#f8f9ff", borderRadius: 14, padding: "16px 20px", marginBottom: 16, textAlign: "left" }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>👋</div>
+            <h2 style={{ margin: "0 0 8px", color: "#1e1b4b", fontSize: 22, fontWeight: 900 }}>Welcome back!</h2>
+            <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 18, lineHeight: 1.6 }}>Pick up right where you left off.</p>
+            <div style={{ background: "#f8f9ff", borderRadius: 12, padding: "14px 16px", marginBottom: 14, textAlign: "left" }}>
               {[
-                { icon: "⚡", label: "Total XP", value: `${userState.xp} XP`, color: "#f59e0b" },
-                { icon: "✅", label: "Lessons done", value: userState.completedLessons.length, color: "#10b981" },
-                { icon: "🏆", label: "Badges earned", value: userState.badges.length, color: "#6366f1" },
+                { icon: "⚡", label: "Total XP",      value: `${userState.xp} XP`,                   color: "#f59e0b" },
+                { icon: "✅", label: "Lessons done",  value: userState.completedLessons.length,         color: "#10b981" },
+                { icon: "🏆", label: "Badges earned", value: userState.badges.length,                   color: "#6366f1" },
               ].map(s => (
-                <div key={s.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "center" }}>
-                  <span style={{ color: "#6b7280", fontSize: 14 }}>{s.icon} {s.label}</span>
-                  <span style={{ color: s.color, fontWeight: 800, fontSize: 15 }}>{s.value}</span>
+                <div key={s.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ color: "#6b7280", fontSize: 13 }}>{s.icon} {s.label}</span>
+                  <span style={{ color: s.color, fontWeight: 800 }}>{s.value}</span>
                 </div>
               ))}
             </div>
             <div style={{
               background: "#fefce8", border: "1px solid #fde047",
-              borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#713f12", marginBottom: 22, textAlign: "left",
-            }}>
-              💡 <strong>Tip:</strong> Try a warmup command before jumping into new lessons!
-            </div>
+              borderRadius: 9, padding: "9px 12px", fontSize: 12, color: "#713f12", marginBottom: 20, textAlign: "left",
+            }}>💡 <strong>Tip:</strong> Try a warmup command before jumping into new lessons!</div>
             <button onClick={() => setShowWelcomeBack(false)} style={{
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              border: "none", color: "white", padding: "13px 36px",
-              borderRadius: 12, cursor: "pointer", fontWeight: 800,
-              fontSize: 15, fontFamily: "inherit", width: "100%",
-              boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
+              background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              border: "none", color: "white", padding: "12px 32px",
+              borderRadius: 11, cursor: "pointer", fontWeight: 800,
+              fontSize: 14, fontFamily: "inherit", width: "100%",
+              boxShadow: "0 4px 14px rgba(99,102,241,.4)",
             }}>Let's Continue! →</button>
           </div>
         </div>
       )}
 
-      {/* ─── HEADER ─── */}
+      {/* ── HEADER ── */}
       <header style={{
-        background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-        padding: "0 24px", position: "sticky", top: 0, zIndex: 100,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
+        background: "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+        padding: mob ? "0 12px" : "0 24px",
+        position: "sticky", top: 0, zIndex: 100,
+        boxShadow: "0 4px 20px rgba(0,0,0,.2)",
       }}>
-        <div style={{ maxWidth: 1160, margin: "0 auto", display: "flex", alignItems: "center", height: 64, gap: 16 }}>
+        <div style={{
+          maxWidth: 1160, margin: "0 auto",
+          display: "flex", alignItems: "center",
+          height: mob ? 52 : 62, gap: 12,
+        }}>
           {/* Logo */}
-          <div onClick={() => setAppSection("theory")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div onClick={() => setAppSection("theory")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+              width: 32, height: 32, borderRadius: 8,
+              background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
             }}>🐧</div>
-            <div>
-              <div style={{ color: "white", fontWeight: 800, fontSize: 15, lineHeight: 1 }}>Terminal Quest</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>Linux Learning</div>
-            </div>
+            {!mob && (
+              <div>
+                <div style={{ color: "white", fontWeight: 800, fontSize: 14, lineHeight: 1 }}>Terminal Quest</div>
+                <div style={{ color: "rgba(255,255,255,.4)", fontSize: 10 }}>Linux Learning</div>
+              </div>
+            )}
           </div>
 
-          {/* Progress bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, maxWidth: 280 }}>
-            <span style={{ color: "#fbbf24", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>⚡ {userState.xp} XP</span>
-            <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
-              <div style={{
-                height: "100%", width: `${Math.min(progressPct, 100)}%`,
-                background: "linear-gradient(90deg, #6366f1, #a78bfa, #38bdf8)",
-                borderRadius: 3, transition: "width 0.6s",
-              }} />
+          {/* XP bar — hide on mobile */}
+          {!mob && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 260 }}>
+              <span style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>⚡ {userState.xp} XP</span>
+              <div style={{ flex: 1, height: 5, background: "rgba(255,255,255,.1)", borderRadius: 3 }}>
+                <div style={{
+                  height: "100%", width: `${Math.min(progressPct, 100)}%`,
+                  background: "linear-gradient(90deg,#6366f1,#a78bfa,#38bdf8)",
+                  borderRadius: 3, transition: "width .6s",
+                }} />
+              </div>
+              <span style={{ color: "rgba(255,255,255,.35)", fontSize: 10, whiteSpace: "nowrap" }}>{progressPct}%</span>
             </div>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, whiteSpace: "nowrap" }}>{progressPct}%</span>
-          </div>
+          )}
+
+          {/* Mobile XP badge */}
+          {mob && (
+            <div style={{
+              background: "rgba(251,191,36,.15)", border: "1px solid rgba(251,191,36,.3)",
+              borderRadius: 16, padding: "3px 10px",
+              color: "#fbbf24", fontSize: 11, fontWeight: 700, flexShrink: 0,
+            }}>⚡ {userState.xp}</div>
+          )}
 
           <div style={{ flex: 1 }} />
 
-          {/* Nav */}
-          <nav style={{ display: "flex", gap: 4 }}>
-            {[
-              { id: "learn", label: "📚 Learn", },
-              { id: "game", label: "🎮 Missions", },
-              { id: "dashboard", label: "🏆 Progress", },
-            ].map((n) => (
+          {/* Nav tabs */}
+          <nav style={{ display: "flex", gap: mob ? 2 : 4 }}>
+            {NAV_ITEMS.map((n) => (
               <button key={n.id} onClick={() => setView(n.id)} style={{
-                background: view === n.id ? "rgba(255,255,255,0.15)" : "transparent",
-                border: `1px solid ${view === n.id ? "rgba(255,255,255,0.25)" : "transparent"}`,
-                color: view === n.id ? "white" : "rgba(255,255,255,0.5)",
-                padding: "7px 16px", borderRadius: 8, cursor: "pointer",
-                fontSize: 13, fontFamily: "inherit", fontWeight: view === n.id ? 700 : 400,
-                transition: "all 0.15s",
+                background: view === n.id ? "rgba(255,255,255,.15)" : "transparent",
+                border: `1px solid ${view === n.id ? "rgba(255,255,255,.25)" : "transparent"}`,
+                color: view === n.id ? "white" : "rgba(255,255,255,.5)",
+                padding: mob ? "7px 11px" : "7px 15px",
+                borderRadius: 8, cursor: "pointer",
+                fontSize: mob ? 16 : 13,
+                fontFamily: "inherit", fontWeight: view === n.id ? 700 : 400,
+                transition: "all .15s",
               }}>{n.label}</button>
             ))}
           </nav>
 
-          <button onClick={() => setAppSection("theory")} style={{
-            background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-            color: "rgba(255,255,255,0.55)", padding: "6px 13px", borderRadius: 8,
-            cursor: "pointer", fontSize: 12, fontFamily: "inherit",
-          }}>📖 Theory</button>
+          {!mob && (
+            <button onClick={() => setAppSection("theory")} style={{
+              background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.12)",
+              color: "rgba(255,255,255,.55)", padding: "6px 12px", borderRadius: 7,
+              cursor: "pointer", fontSize: 11, fontFamily: "inherit",
+            }}>📖 Theory</button>
+          )}
         </div>
       </header>
 
-      {/* ─── MAIN ─── */}
-      <main style={{ maxWidth: 1160, margin: "0 auto", padding: "28px 24px" }}>
+      {/* ── MAIN ── */}
+      <main style={{ maxWidth: 1160, margin: "0 auto", padding: mob ? "12px 10px" : "24px 20px" }}>
 
-        {/* ── LEARN MODE ── */}
+        {/* LEARN */}
         {view === "learn" && (
-          <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-            {/* Sidebar */}
-            <div style={{ width: 210, flexShrink: 0 }}>
+          <div style={{
+            display: "flex",
+            flexDirection: mob ? "column" : "row",
+            gap: mob ? 12 : 22,
+            alignItems: "flex-start",
+          }} className="tq-learn-wrap">
+            {/* Level selector */}
+            <div style={{ width: mob ? "100%" : 210, flexShrink: 0 }} className="tq-level-side">
               <div style={{
-                background: "white", borderRadius: 16, padding: "16px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+                background: "white", borderRadius: 14, padding: 14,
+                boxShadow: "0 4px 18px rgba(0,0,0,.06)",
               }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase",
-                  color: "#9ca3af", marginBottom: 12, paddingBottom: 10,
+                  fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+                  textTransform: "uppercase", color: "#9ca3af",
+                  marginBottom: 10, paddingBottom: 8,
                   borderBottom: "1px solid #f3f4f6",
                 }}>Select Level</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: mob ? "1fr 1fr" : "1fr",
+                  gap: 7,
+                }} className="tq-level-grid">
                   {LEVELS.map((lvl) => (
-                    <LevelCard key={lvl.id} level={lvl} userState={userState} onSelect={setActiveLevel} isActive={activeLevel === lvl.id} />
+                    <LevelCard key={lvl.id} level={lvl} userState={userState}
+                      onSelect={setActiveLevel} isActive={activeLevel === lvl.id} />
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Lessons panel */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Lessons */}
+            <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
               {currentLevel ? (
                 <>
-                  {/* Level header */}
                   <div style={{
-                    background: "white", borderRadius: 16, padding: "20px 24px", marginBottom: 20,
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+                    background: "white", borderRadius: 14,
+                    padding: mob ? "14px" : "18px 22px",
+                    marginBottom: 16,
+                    boxShadow: "0 4px 18px rgba(0,0,0,.06)",
                     borderTop: `4px solid ${currentLevel.color}`,
-                    display: "flex", alignItems: "center", gap: 14,
+                    display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
                   }}>
                     <div style={{
-                      width: 52, height: 52, borderRadius: 14, fontSize: 24,
+                      width: 44, height: 44, borderRadius: 11, fontSize: 20,
                       background: currentLevel.color + "18",
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>{currentLevel.icon}</div>
                     <div style={{ flex: 1 }}>
-                      <h2 style={{ margin: "0 0 3px", fontSize: 20, fontWeight: 900, color: "#1e1b4b" }}>
+                      <h2 style={{ margin: "0 0 2px", fontSize: mob ? 16 : 18, fontWeight: 900, color: "#1e1b4b" }}>
                         {currentLevel.title}
                       </h2>
-                      <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>{currentLevel.subtitle}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>{currentLevel.subtitle}</p>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ color: currentLevel.color, fontSize: 22, fontWeight: 900 }}>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ color: currentLevel.color, fontSize: 20, fontWeight: 900 }}>
                         {currentLevel.lessons.filter((l) => userState.completedLessons.includes(l.id)).length}
-                        <span style={{ color: "#d1d5db", fontSize: 16 }}>/{currentLevel.lessons.length}</span>
+                        <span style={{ color: "#d1d5db", fontSize: 14 }}>/{currentLevel.lessons.length}</span>
                       </div>
-                      <div style={{ color: "#9ca3af", fontSize: 11 }}>lessons done</div>
+                      <div style={{ color: "#9ca3af", fontSize: 10 }}>done</div>
                     </div>
                   </div>
-
                   {currentLevel.lessons.map((lesson) => (
-                    <LessonCard
-                      key={lesson.id} lesson={lesson} levelColor={currentLevel.color}
+                    <LessonCard key={lesson.id} lesson={lesson} levelColor={currentLevel.color}
                       onComplete={handleLessonComplete}
                       isCompleted={userState.completedLessons.includes(lesson.id)}
-                      onHint={handleHint} hintsUsed={userState.hintsUsed[lesson.id] || 0}
-                    />
+                      onHint={handleHint} hintsUsed={userState.hintsUsed[lesson.id] || 0} />
                   ))}
                 </>
               ) : (
                 <div style={{
-                  background: "white", borderRadius: 16, padding: 48, textAlign: "center",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+                  background: "white", borderRadius: 14, padding: 40, textAlign: "center",
+                  boxShadow: "0 4px 18px rgba(0,0,0,.06)",
                 }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>👈</div>
-                  <p style={{ color: "#6b7280", fontSize: 15 }}>Select a level from the sidebar to begin.</p>
+                  <div style={{ fontSize: 36, marginBottom: 10 }}>👆</div>
+                  <p style={{ color: "#6b7280", fontSize: 14 }}>Tap a level above to begin.</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ── GAME MODE ── */}
+        {/* GAME */}
         {view === "game" && (
           <div style={{
-            background: "white", borderRadius: 20, padding: "28px",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
+            background: "white", borderRadius: 16,
+            padding: mob ? "14px 12px" : "24px",
+            boxShadow: "0 4px 20px rgba(0,0,0,.07)",
           }}>
-            <GameMode userState={userState} onMissionComplete={handleMissionComplete} />
+            <GameMode userState={userState} onMissionComplete={handleMissionComplete} showNotif={showNotif} />
           </div>
         )}
 
-        {/* ── DASHBOARD ── */}
+        {/* DASHBOARD */}
         {view === "dashboard" && (
-          <div style={{ maxWidth: 700, margin: "0 auto" }}>
-            {/* Stat cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 24 }}>
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+            {/* Stats */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: mob ? "1fr 1fr" : "repeat(3,1fr)",
+              gap: mob ? 10 : 14, marginBottom: 18,
+            }}>
               {[
-                { label: "Total XP", value: userState.xp, color: "#f59e0b", icon: "⚡", bg: "#fef3c7" },
-                { label: "Lessons Done", value: userState.completedLessons.length, color: "#10b981", icon: "✅", bg: "#dcfce7" },
-                { label: "Badges Earned", value: userState.badges.length, color: "#6366f1", icon: "🏆", bg: "#ede9fe" },
+                { label: "Total XP",     value: userState.xp,                          color: "#f59e0b", icon: "⚡", bg: "#fef3c7" },
+                { label: "Lessons",      value: userState.completedLessons.length,      color: "#10b981", icon: "✅", bg: "#dcfce7" },
+                { label: "Badges",       value: userState.badges.length,                color: "#6366f1", icon: "🏆", bg: "#ede9fe" },
               ].map((s) => (
                 <div key={s.label} style={{
                   background: "white", border: `1px solid ${s.color}22`,
-                  borderRadius: 16, padding: "20px", textAlign: "center",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.05)",
+                  borderRadius: 14, padding: mob ? "14px 12px" : "18px",
+                  textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,.05)",
                 }}>
                   <div style={{
-                    width: 44, height: 44, borderRadius: 12, background: s.bg,
+                    width: 38, height: 38, borderRadius: 10, background: s.bg,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 20, margin: "0 auto 12px",
+                    fontSize: 18, margin: "0 auto 10px",
                   }}>{s.icon}</div>
-                  <div style={{ color: s.color, fontSize: 28, fontWeight: 900 }}>{s.value}</div>
-                  <div style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>{s.label}</div>
+                  <div style={{ color: s.color, fontSize: 26, fontWeight: 900 }}>{s.value}</div>
+                  <div style={{ color: "#9ca3af", fontSize: 11, marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
             {/* Level progress */}
             <div style={{
-              background: "white", borderRadius: 16, padding: "24px",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.05)", marginBottom: 20,
+              background: "white", borderRadius: 14, padding: mob ? "16px 14px" : "22px",
+              boxShadow: "0 2px 12px rgba(0,0,0,.05)", marginBottom: 16,
             }}>
-              <h3 style={{ margin: "0 0 18px", fontSize: 15, fontWeight: 800, color: "#1e1b4b" }}>📈 Level Progress</h3>
+              <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 800, color: "#1e1b4b" }}>📈 Level Progress</h3>
               {LEVELS.map((lvl) => {
                 const done = lvl.lessons.filter((l) => userState.completedLessons.includes(l.id)).length;
                 const pct = Math.round((done / lvl.lessons.length) * 100);
                 return (
-                  <div key={lvl.id} style={{ marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{lvl.icon} {lvl.title}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ color: "#9ca3af", fontSize: 11 }}>{done}/{lvl.lessons.length} lessons</span>
+                  <div key={lvl.id} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, alignItems: "center" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{lvl.icon} {lvl.title}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <span style={{ color: "#9ca3af", fontSize: 10 }}>{done}/{lvl.lessons.length}</span>
                         {userState.completedLevels.includes(lvl.id) && (
                           <span style={{
                             background: "#dcfce7", color: "#16a34a",
-                            fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10,
-                          }}>Complete!</span>
+                            fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 8,
+                          }}>✓</span>
                         )}
                       </div>
                     </div>
-                    <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4 }}>
-                      <div style={{
-                        height: "100%", width: `${pct}%`, background: lvl.color,
-                        borderRadius: 4, transition: "width 0.5s",
-                      }} />
+                    <div style={{ height: 7, background: "#f3f4f6", borderRadius: 4 }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: lvl.color, borderRadius: 4, transition: "width .5s" }} />
                     </div>
                   </div>
                 );
@@ -2003,20 +2098,19 @@ export default function App() {
 
             {/* Badges */}
             <div style={{
-              background: "white", borderRadius: 16, padding: "24px",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.05)", marginBottom: 20,
+              background: "white", borderRadius: 14, padding: mob ? "16px 14px" : "22px",
+              boxShadow: "0 2px 12px rgba(0,0,0,.05)", marginBottom: 16,
             }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 800, color: "#1e1b4b" }}>🏆 Badges</h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 800, color: "#1e1b4b" }}>🏆 Badges</h3>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {BADGES.map((b) => {
                   const earned = userState.badges.includes(b.id);
                   return (
                     <div key={b.id} title={b.desc} style={{
-                      padding: "7px 14px", borderRadius: 24, fontSize: 12, fontWeight: 600,
+                      padding: "6px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600,
                       background: earned ? "#ede9fe" : "#f9fafb",
                       border: `1px solid ${earned ? "#a78bfa" : "#e5e7eb"}`,
                       color: earned ? "#6d28d9" : "#9ca3af",
-                      transition: "all 0.2s",
                     }}>{b.icon} {b.label}</div>
                   );
                 })}
@@ -2024,7 +2118,7 @@ export default function App() {
             </div>
 
             {/* Reset */}
-            <div style={{ textAlign: "center" }}>
+            <div style={{ textAlign: "center", paddingBottom: 20 }}>
               <button onClick={() => {
                 if (window.confirm("Reset all progress? This cannot be undone.")) {
                   const f = defaultState();
@@ -2035,7 +2129,7 @@ export default function App() {
                 }
               }} style={{
                 background: "transparent", border: "1px solid #fca5a5",
-                color: "#ef4444", padding: "8px 18px", borderRadius: 8,
+                color: "#ef4444", padding: "8px 16px", borderRadius: 8,
                 cursor: "pointer", fontSize: 12, fontFamily: "inherit", fontWeight: 600,
               }}>⚠ Reset All Progress</button>
             </div>
